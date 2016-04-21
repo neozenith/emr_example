@@ -1,7 +1,9 @@
 #! /bin/bash
 
-echo "### Configure AWS Credentials"
-aws configure
+# Before you start:
+# http://docs.aws.amazon.com/cli/latest/userguide/installing.html
+# pip install awscli
+# aws configure
 
 echo "### List S3 Buckets"
 aws s3 ls
