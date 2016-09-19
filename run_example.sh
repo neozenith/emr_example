@@ -27,7 +27,7 @@ aws s3 mb "s3://$BUCKET"
 aws s3 ls
 
 echo "### Create Cluster"
-# create cluster 
+# create cluster
 # add step
 aws emr create-cluster \
   --name "EMR Example" \
@@ -36,18 +36,29 @@ aws emr create-cluster \
   --no-termination-protected \
   --use-default-roles \
   --instance-groups \
-    InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
-    InstanceGroupType=CORE,InstanceCount=2,InstanceType=m3.xlarge \
+  InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
+  InstanceGroupType=CORE,InstanceCount=2,InstanceType=m3.xlarge \
   --steps Type=STREAMING,Name='Streaming Program',ActionOnFailure=CONTINUE,Args=[-files,s3://elasticmapreduce/samples/wordcount/wordSplitter.py,-mapper,wordSplitter.py,-reducer,aggregate,-input,s3://elasticmapreduce/samples/wordcount/input,-output,s3://$BUCKET/wordcount/output] \
   --auto-terminate \
-  --log-uri "s3://$BUCKET/wordcount/logs" \
+  --log-uri "s3://$BUCKET/wordcount/logs"
+
+aws emr list-clusters
 
 # TODO wait for cluster to finish...
-# wait for "s3://$BUCKET/wordcount/output/_SUCCESS"
+S3_TARGET="s3://$BUCKET/wordcount/output/"
+CLUSTER_FINISHED="$(aws s3 ls $S3_TARGET )"
+
+while [ -z "$CLUSTER_FINISHED" ]; do
+  echo "$(date +%Y-%m-%d %H:%M.%s) Cluster not finished yet. Waiting..."
+  sleep 60
+  CLUSTER_FINISHED="$(aws s3 ls $S3_TARGET )"
+done
+
 echo "### Load results"
 # extract results
 mkdir -pv output
-aws s3 sync "s3://$BUCKET/wordcount/output" ./output 
+aws s3 sync "s3://$BUCKET/wordcount/output" ./output
+ls -laFGh output/
 
 echo "### Cleaning up"
-aws s3 rb "s3://$BUCKET" --force
+# aws s3 rb "s3://$BUCKET" --force
